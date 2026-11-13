@@ -34,10 +34,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Gradle 8.2
+      - name: Set up Gradle 8.7
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.2
+          gradle-version: 8.7
 
       - name: Generate Keystore (Untuk Release)
         run: |
@@ -47,19 +47,14 @@ jobs:
         working-directory: ${{ env.PROJ_DIR }}
         run: |
           if [ -f gradlew ]; then chmod +x gradlew; fi
-          # 1. Build Debug
           gradle assembleDebug
-          # 2. Build Release
           gradle assembleRelease -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/release.keystore -Pandroid.injected.signing.store.password=alfy123 -Pandroid.injected.signing.key.alias=alfykey -Pandroid.injected.signing.key.password=alfy123
 
       - name: Find APKs
         id: find_apk
         run: |
-          # Cari APK Debug
           DEBUG_APK=$(find ${{ env.PROJ_DIR }} -path "*/build/outputs/apk/debug/*.apk" | head -n 1)
-          # Cari APK Release
           RELEASE_APK=$(find ${{ env.PROJ_DIR }} -path "*/build/outputs/apk/release/*.apk" | head -n 1)
-          
           echo "DEBUG_APK=$DEBUG_APK" >> $GITHUB_ENV
           echo "RELEASE_APK=$RELEASE_APK" >> $GITHUB_ENV
 
