@@ -1,4 +1,4 @@
-name: Build and Release APK (Release Mode)
+name: Build and Release APK (Debug & Release)
 
 on:
   push:
@@ -39,29 +39,38 @@ jobs:
         with:
           gradle-version: 8.2
 
-      - name: Generate Keystore
+      - name: Generate Keystore (Untuk Release)
         run: |
           keytool -genkey -v -keystore release.keystore -alias alfykey -keyalg RSA -keysize 2048 -validity 10000 -storepass alfy123 -keypass alfy123 -dname "CN=Alfy, OU=Dev, O=Alfy, L=City, S=State, C=ID"
 
-      - name: Build APK (Release)
+      - name: Build BOTH APKs (Debug & Release)
         working-directory: ${{ env.PROJ_DIR }}
         run: |
           if [ -f gradlew ]; then chmod +x gradlew; fi
+          # 1. Build Debug
+          gradle assembleDebug
+          # 2. Build Release
           gradle assembleRelease -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/release.keystore -Pandroid.injected.signing.store.password=alfy123 -Pandroid.injected.signing.key.alias=alfykey -Pandroid.injected.signing.key.password=alfy123
 
-      - name: Find APK
+      - name: Find APKs
         id: find_apk
         run: |
-          APK_PATH=$(find ${{ env.PROJ_DIR }} -path "*/build/outputs/apk/release/*.apk" | head -n 1)
-          if [ -z "$APK_PATH" ]; then echo "APK Release gagal dibuat."; exit 1; fi
-          echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
+          # Cari APK Debug
+          DEBUG_APK=$(find ${{ env.PROJ_DIR }} -path "*/build/outputs/apk/debug/*.apk" | head -n 1)
+          # Cari APK Release
+          RELEASE_APK=$(find ${{ env.PROJ_DIR }} -path "*/build/outputs/apk/release/*.apk" | head -n 1)
+          
+          echo "DEBUG_APK=$DEBUG_APK" >> $GITHUB_ENV
+          echo "RELEASE_APK=$RELEASE_APK" >> $GITHUB_ENV
 
-      - name: Create Release and Upload APK
+      - name: Create Release and Upload Both APKs
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "build-${{ github.run_number }}"
-          name: "AlfyBuild Release ${{ github.run_number }}"
-          files: ${{ env.APK_PATH }}
+          name: "AlfyBuild v${{ github.run_number }}"
+          files: |
+            ${{ env.DEBUG_APK }}
+            ${{ env.RELEASE_APK }}
           draft: false
           prerelease: false
         env:
